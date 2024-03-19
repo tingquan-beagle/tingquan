@@ -80,7 +80,7 @@ int Gripper::seq(){
         // gripper opening and cylinder extending; NC == no control of vertical cylinder
         case NC_AND_EXTEND:
         if (millis() - timestamp >= DELAY_GRAB){
-            gripper(1); // open gripper
+            // gripper(1); // open gripper
             ptr_hor_cyl->setVal(255); // full extension
             state = CLOSE_GRIPPER; // while closing, continue extension
             timestamp = millis();
@@ -230,16 +230,16 @@ int GripperMotor::seq(){
         setRelay(pin_hor_extend,LOW);
         setRelay(pin_second_cutter,LOW);
         setServoTarget(0xFFCE0000,servospeed); //if 50-rounds position is zero,-50 is standby position,stroke is 0cm
-        // Serial.println("standby");
+        // Serial.println("STANDBY");
         seqRet = SEQ_START;
         state = CONTROL_VERTICAL_HEIGHT;
         timestamp = millis();
         break;
 
-        // vertical servo extension
+        // vertical servo move
         case CONTROL_VERTICAL_HEIGHT:
-          setServoTarget(0xFFE70000,servospeed); // set the stroke is 25cm,command is -25 rounds
-        //Serial.println("CONTROL_VERTICAL_HEIGHT"); 
+        setServoTarget(0xFFE70000,servospeed); // set the stroke is 25cm,command is -25 rounds
+        // Serial.println("CONTROL_VERTICAL_HEIGHT"); 
           state = NC_AND_EXTEND; 
           seqRet = SEQ_TRACKING;
           timestamp = millis();
@@ -248,10 +248,12 @@ int GripperMotor::seq(){
         // gripper opening and cylinder extending; NC == no control of vertical cylinder
         case NC_AND_EXTEND:
         if (millis() - timestamp >= DELAY_GRAB){
-            gripper(1); // open gripper
             // digitalWrite(pin_hor_extend, HIGH);// full extension
             setServoTarget(0xFFEC0000,servospeed); // set the stroke is 30cm,command is -20 rounds
             setRelay(pin_hor_extend,HIGH);
+            gripper(1);
+            // setRelay(1,LOW);
+            // setRelay(2,HIGH);
             // Serial.println("gripper opening and cylinder extending");
             state = CLOSE_GRIPPER; // while closing, continue extension
             timestamp = millis();
@@ -263,90 +265,93 @@ int GripperMotor::seq(){
         case CLOSE_GRIPPER:
         if(millis() - timestamp >= DELAY_CLOSE) {
             gripper(0); // close gripper
-            // Serial.println("close gripper");
-            state = SECOND_CUTTER_EXTEND; 
-            timestamp = millis();
-        }
-        seqRet = SEQ_CUTTING;
-        break;
-
-        case SECOND_CUTTER_EXTEND:
-        if(millis() - timestamp >= DELAY_SECOND_CUTTER_EXTEND) {
+            delay(100);
             setRelay( pin_second_cutter, HIGH);
-            // Serial.println("second cutter extend");
-            state = SECOND_CUTTER_RETRACT; 
+            // Serial.println("close gripper");
+            state = RETRACT; 
             timestamp = millis();
         }
         seqRet = SEQ_CUTTING;
         break;
 
-        case SECOND_CUTTER_RETRACT:
-        if(millis() - timestamp >= DELAY_SECOND_CUTTER_RETRACT) {
-            setRelay( pin_second_cutter, LOW);
-            // Serial.println("second cutter extend");
-            state = RETRACT; // retract gripper
-            timestamp = millis();
-        }
-        seqRet = SEQ_CUTTING;
-        break;
+        // case SECOND_CUTTER_EXTEND:
+        // if(millis() - timestamp >= DELAY_SECOND_CUTTER_EXTEND) {
+        //     setRelay( pin_second_cutter, HIGH);
+        //     // Serial.println("second cutter extend");
+        //     state = RETRACT; 
+        //     timestamp = millis();
+        // }
+        // seqRet = SEQ_CUTTING;
+        // break;
 
-        // retract gripper
+        // case SECOND_CUTTER_RETRACT:
+        // if(millis() - timestamp >= DELAY_SECOND_CUTTER_RETRACT) {
+        //     setRelay( pin_second_cutter, LOW);
+        //     // Serial.println("second cutter extend");
+        //     state = RETRACT; // retract gripper
+        //     timestamp = millis();
+        // }
+        // seqRet = SEQ_CUTTING;
+        // break;
+
+        // retract gripper and vertical servo move
         case RETRACT:
         if(millis() - timestamp >= DELAY_RETRACT){
-            // gripper(0); // close gripper TODO: TALK WITH MING ABOUT THIS TIMING
             // digitalWrite(pin_hor_extend, LOW);
+            setRelay( pin_second_cutter, LOW);
             setRelay(pin_hor_extend,LOW);
-            // Serial.println("retract gripper");
-            state = ROTATE_GRIPPER;
-            timestamp = millis();
-        }
-        seqRet = SEQ_CUTTING;
-        break;
-
-        // gripper rotates
-        case ROTATE_GRIPPER:
-        if (millis() - timestamp >= DELAY_ROTATE){
-            // digitalWrite(pin_rotation, HIGH); // rotate gripper
             setRelay(pin_rotation,HIGH);
-            // Serial.println("gripper rotates");
+            setServoTarget(0xFFCE0000,servospeed); // set the stroke is 0 cm,command is -50 rounds
+            // Serial.println("retract gripper");
             state = OPEN_GRIPPER;
             timestamp = millis();
         }
         seqRet = SEQ_CUTTING;
         break;
 
+        // gripper rotates
+        // case ROTATE_GRIPPER:
+        // if (millis() - timestamp >= DELAY_ROTATE){
+        //     // digitalWrite(pin_rotation, HIGH); // rotate gripper
+        //     setRelay(pin_rotation,HIGH);
+        //     // Serial.println("gripper rotates");
+        //     state = OPEN_GRIPPER;
+        //     timestamp = millis();
+        // }
+        // seqRet = SEQ_CUTTING;
+        // break;
+
         // gripper opens
         case OPEN_GRIPPER:
         if(millis() - timestamp >= DELAY_RELEASE){
-            gripper(1); // open
+            gripper(2); // Gripper returns to neutral
             // Serial.println("gripper opens");
-            state = RESET_POS;
-            timestamp = millis();
+            state = RESET_SYS;
+            // timestamp = millis();
         }  
         seqRet = SEQ_CUTTING;
         break;
 
-        // reset positions
-        case RESET_POS:
-        if(millis() - timestamp >= DELAY_RESET){ 
-            gripper(2); // return to neutral
-            // Serial.println("gripper return to neutral");
-            state = RESET_SYS;
-            timestamp = millis();
-        }
-        seqRet = SEQ_CUTTING;
-        break;
+        // // reset positions
+        // case RESET_POS:
+        // if(millis() - timestamp >= DELAY_RESET){ 
+        //     gripper(2); // return to neutral
+        //     // Serial.println("gripper return to neutral");
+        //     state = RESET_SYS;
+        //     timestamp = millis();
+        // }
+        // seqRet = SEQ_CUTTING;
+        // break;
 
         case RESET_SYS: // reset state and send SEQ_COMPLETE TODO: DELETE STATE
         if (millis() - timestamp >= DELAY_COMPLETE){
             // digitalWrite(pin_rotation, LOW);
             setRelay(pin_rotation,LOW);
-            delay(700);
-            setServoTarget(0xFFCE0000,servospeed); 
+            gripper(2);// Gripper returns to neutral 
             // Serial.println("RESET_SYS");
-            state = STANDBY;
+            state = CONTROL_VERTICAL_HEIGHT;
             seqRet = SEQ_COMPLETE;
-            delay(1500);
+            delay(1000);
         }
         break;
 
@@ -361,12 +366,12 @@ int GripperMotor::seq(){
 
 void GripperMotor::gripperReset(){
 
-    gripper(2); //grippers open
+    gripper(1); // return to neutral
     setRelay(pin_rotation,LOW);
     setRelay(pin_hor_extend,LOW);
     setServoTarget(0xFFCE0000,servospeed);
-    state = STANDBY;
-    // Serial.println("STANDBY");
+    state = CONTROL_VERTICAL_HEIGHT;
+    // Serial.println("Reset");
 }
 
   // Getters for internals of gripper.

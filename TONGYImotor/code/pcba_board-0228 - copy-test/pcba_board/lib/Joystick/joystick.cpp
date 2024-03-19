@@ -16,7 +16,7 @@
 #define GRIPPER_NEG 2   // gripper neg-open
 #define PIN_ROTATION 3  // horizontal cylinder 
 #define PIN_EXTEND 4  // rotational valve
-#define PIN_SECOND_CUTTER 5  // rotational valve
+#define PIN_SECOND_CUTTER 5  // second cutter
 
 GripperMotor gripper_motor(GRIPPER_NEG, GRIPPER_POS, PIN_ROTATION, PIN_EXTEND ,PIN_SECOND_CUTTER);
 
@@ -182,16 +182,25 @@ void Joystick::controlCylinders() {
     bool is_right_control_engaged = isRightControlEngaged();
     bool is_deadman_engaged = isDeadmanSwitchEngaged();
 
+    if (is_left_automatic_mode && is_right_automatic_mode) {
+       gripper_motor.seq();
+    }
+
     // Check if the control and deadman switch are engaged for left control
     if (is_left_manual_mode && is_right_manual_mode) {
 
         if (is_left_control_engaged) {
 
             float position_change_y = handle_y;
-            // Serial.println(position_change_y);
+            // // Serial.println(position_change_y);
             setServoposition(int(position_change_y));
         }
-        
+
+        // if (is_right_control_engaged){
+        //     setRelay(2, LOW);
+        //     setRelay(1, HIGH);
+            
+        // }
 
         if (is_deadman_engaged) {
 
@@ -218,6 +227,7 @@ void Joystick::controlCylinders() {
         else{
             gripper_motor.gripperReset();
         }
+
         // if (!is_deadman_engaged){
         //     setRelay(1,LOW);
         //     setRelay(2,LOW);
@@ -225,7 +235,7 @@ void Joystick::controlCylinders() {
         //     setRelay(4,LOW);
         //     setRelay(5,LOW);
         // }
-        
+
     }
     
     if (is_left_manual_mode && !is_right_manual_mode) {
@@ -234,9 +244,28 @@ void Joystick::controlCylinders() {
     }
 
     // Check whether the motor will overheat during long-term operation
-    if (is_left_automatic_mode && is_right_automatic_mode) {
-       gripper_motor.seq();
-       delay(2000);
-    }
+
+
+    
+    // test gripper
+    // if (!is_left_manual_mode && !is_right_manual_mode) {
+        
+    //     setRelay(GRIPPER_POS, LOW);
+    //     setRelay(GRIPPER_NEG, HIGH);
+        
+    // }
+
+    // if (is_left_automatic_mode && !is_right_manual_mode) {
+        
+    //     setRelay(GRIPPER_NEG, LOW);
+    //     setRelay(GRIPPER_POS, HIGH);
+
+    //     if (is_deadman_engaged)
+    //     {
+    //         setRelay( PIN_SECOND_CUTTER, HIGH);
+    //         delay(50);
+    //         setRelay( PIN_SECOND_CUTTER, LOW);
+    //     }
+    // }
 
 }
